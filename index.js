@@ -1,56 +1,68 @@
-const { Client, Events, GatewayIntentBits, Collection } = require('discord.js'); //Código base para o bot do discord
-// Criando um novo cliente com as intenções de guildas(servidores)
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const Discord = require("discord.js");
+const client = new Discord.Client({ intents: [1, 512, 32768, 2, 128] });
+const config = require("./config.json");
+const fs = require("fs");
 
-// importando o .env para pegar os tokens
-const dotenv = require('dotenv');
-dotenv.config();
-const { TOKEN, CLIENT_ID, GUILD_ID } = process.env;
+client.login(config.TOKEN)
 
-//Importação dos métodos do node
-const fs = require('node:fs');
-const path = require('node:path');
+// Criando novas coleções para guardar comandos e aliases
+client.commands = new Discord.Collection();
+client.aliases = new Discord.Collection();
 
-//Importando os comandos
-const commandsPath = path.join(__dirname, 'slash_commands'); //pegando o caminho dos comandos
-const commandsFiles = fs.readdirSync(commandsPath).filter(arquivo => arquivo.endsWith('.js')); //pegando os arquivos .js
+// Lendo diretório de comandos e armazenando em uma coleção
+client.categories = fs.readdirSync(`./commands/`);
 
-client.commands = new Collection(); //criando uma coleção de comandos (array)
+fs.readdirSync('./commands/').forEach(local => {
+  // Filtrando arquivos que terminam em '.js'
+  const comandos = fs.readdirSync(`./commands/${local}`).filter(arquivo => arquivo.endsWith('.js'))
 
-for(const arquivo of commandsFiles) { //percorrendo o array de arquivos acima e pegando o comando
-    const arquivoCaminho = path.join(commandsPath, arquivo); //pegando o caminho do arquivo
-    const comando = require(arquivoCaminho); //pegando o comando 
-    if("data" in comando && "execute" in comando) { //verificando se o comando tem os métodos necessários
-        client.commands.set(comando.data.name, comando); //setando o comando na coleção
+  for (let file of comandos) {
+    // Requerendo cada arquivo de comando
+    let puxar = require(`./commands/${local}/${file}`)
+
+    // Adicionando comando na coleção 'client.commands'
+    if (puxar.name) {
+      client.commands.set(puxar.name, puxar)
+    } 
+
+    // Adicionando aliases na coleção 'client.aliases'
+    if (puxar.aliases && Array.isArray(puxar.aliases)) {
+      puxar.aliases.forEach(x => client.aliases.set(x, puxar.name))
     }
-    else{
-        console.log(`O comando ${arquivo} não tem os métodos necessários!`);
-    }
-}
-
-
-// Quando o cliente estiver pronto, executar este código
-// 'c' será o nosso cliente, pode nomear como quiser
-client.once(Events.ClientReady, c => {
-	console.log(`Pronto! Logado em: ${c.user.tag}`);
+  } 
 });
 
-// Quando o cliente receber uma interação, executar este código 
-client.on(Events.InteractionCreate, async interaction => {
-    if(!interaction.isCommand()) return; //verificando se a interação é um comando
+// Escutando eventos 'messageCreate'
+client.on("messageCreate", async (message) => {
 
-    const comando = client.commands.get(interaction.commandName); //pegando o comando
-    if(!comando) return; //verificando se o comando existe
+  // Definindo prefixo
+  let prefix = config.prefix;
 
-    try {
-        await comando.execute(interaction); //executando o comando
-    } catch (error) {
-        console.error(error); //mostrando o erro no console
-        await interaction.reply({ content: 'Ocorreu um erro ao executar o comando!', ephemeral: true }); //resposta do comando
-    }
+  // Verificando se a mensagem foi enviada por um bot ou se é uma mensagem direta
+  if (message.author.bot) return;
+  if (message.channel.type === Discord.ChannelType.DM) return;     
+
+  // Verificando se a mensagem começa com o prefixo
+  if (!message.content.toLowerCase().startsWith(prefix.toLowerCase())) return;
+
+  // Separando argumentos e comando da mensagem
+  const args = message.content.slice(prefix.length).trim().split(/ +/g);
+  let cmd = args.shift().toLowerCase()
+
+  // Verificando se o comando é válido
+  if (cmd.length === 0) return;
+  let command = client.commands.get(cmd)
+  if (!command) command = client.commands.get(client.aliases.get(cmd))
+
+  // Executando o comando
+  try {
+    command.run(client, message, args)
+  } catch (err) { 
+    console.error('Erro:' + err); 
+  }
+});
+
+// Escutando evento 'ready'
+client.on("ready", () => {
+  console.log(`🔥 Estou online em ${client.user.username}!`)
 })
-
-
-
-// Logando o cliente com o token
-client.login(TOKEN);
