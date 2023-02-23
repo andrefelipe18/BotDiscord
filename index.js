@@ -3,33 +3,8 @@ const { QuickDB } = require("quick.db")
 const db = new QuickDB()
 const config = require("./config.json"); // Importa as configurações do bot do arquivo config.json
 
-//Importando o firebase
-const { initializeApp } = require("firebase/app");
-const { getDatabase, ref, push, onValue } = require("firebase/database");
-
-
-const firebaseConfig = {
-  apiKey: config.apiKey,
-  authDomain: config.authDomain,
-  databaseURL: config.databaseURL,
-  projectId: config.projectId,
-  storageBucket: config.storageBucket,
-  messagingSenderId: config.messagingSenderId,
-  appId: config.appId
-};
-
-//Inicnado o firebase
-const app = initializeApp(firebaseConfig);
-
-//Objeto molde para o banco de dados
-class Post {
-  constructor(id, titulo, legenda, conteudo) {
-    this.id = id
-    this.titulo = titulo;
-    this.legenda = legenda;
-    this.conteudo = conteudo;
-  }
-}
+//Importando o model de post
+const Post = require("./Model/Post.js");
 
 
 const client = new Discord.Client({  // Cria uma nova instância do cliente discord
@@ -157,27 +132,16 @@ client.on("interactionCreate", async(interaction) => {
         },
       );
 
+      //Criando o post no firebase
       let conteudo = resposta3 + '    ' + resposta4 + '    ' +  resposta5;
       let postagem = new Post(postId, resposta1, resposta2, conteudo);
-      createPost(postagem);
+      postagem.createPost(postagem);
+
       await interaction.guild.channels.cache.get(await db.get(`posts_${interaction.guild.id}`)).send({ embeds: [embed] })
     }
   }
 })
 
-//Função para criar post no banco de dados
-function createPost(post) {
-  const db = getDatabase();
-  const postRef = push(ref(db, 'posts'), post);
-
-  postRef
-    .then(() => {
-      console.log('Post adicionado com sucesso!');
-    })
-    .catch((error) => {
-      console.error('Erro ao adicionar o post: ', error);
-    });
-}
 
 
 client.on('ready', () => { // Cria um ouvinte para o evento de inicialização do bot
