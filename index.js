@@ -100,7 +100,7 @@ client.on("interactionCreate", async(interaction) => {
 
       const postId = Date.now().toString();
       let embed = new Discord.EmbedBuilder()
-      .setColor("Green")
+      .setColor("DarkRed")
       .setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL({ dynamic: true }) })
       .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
       .setDescription(`Post de ID: \`${postId}\``)
@@ -131,17 +131,40 @@ client.on("interactionCreate", async(interaction) => {
           inline: false
         },
       );
-
+      //Criando o botão de alternar o status do post
+      let botao = new Discord.ActionRowBuilder().addComponents(
+        new Discord.ButtonBuilder()
+        .setCustomId("status_b" + postId) // ID do botão que envia o id do post para o ouvinte
+        .setEmoji("➡") // Emoji do botão
+        .setLabel("Clique Aqui Para Alternar o Status para: Postado") // Label do botão
+        .setStyle(Discord.ButtonStyle.Danger) // Estilo do botão
+    );
       //Criando o post no firebase
       let conteudo = resposta3 + '    ' + resposta4 + '    ' +  resposta5;
       let postagem = new Post(postId, resposta1, resposta2, conteudo);
       postagem.createPost(postagem);
 
-      await interaction.guild.channels.cache.get(await db.get(`posts_${interaction.guild.id}`)).send({ embeds: [embed] })
+      await interaction.guild.channels.cache.get(await db.get(`posts_${interaction.guild.id}`)).send({ embeds: [embed], components: [botao] })
     }
   }
 })
+client.on('interactionCreate', async (interaction) => {  //Ouvinte para o clique no botão de alternar o status do post
+  if (interaction.isButton()) { //Verifica se o clique foi em um botão
+    if (interaction.customId.startsWith("status_b")) { //Verifica se o ID do botão é o botão de alternar status
+      //Pegando o ID do post enviado no ID do botão
+      let postId = interaction.customId.replace("status_b", "");
+      //Pegando o post no firebase
+      let Ppost = new Post();
+      // Obtendo o objeto Post com base no ID
+      let post = await Ppost.getPostById(postId);
 
+      //Atualizando o post no firebase
+      post.mudarStatus(post);
+
+
+    }
+  }
+});
 
 
 client.on('ready', () => { // Cria um ouvinte para o evento de inicialização do bot

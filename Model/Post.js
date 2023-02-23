@@ -120,14 +120,25 @@ class Post {
     const db = getDatabase(); // Obtendo a referência do banco de dados
     const postRef = ref(db, `posts/${post.id}`); // Obtendo a referência do post específico a partir do ID
   
-    // Atualizando o status do post
-    return update(postRef, { status: 'postado' })
+    //Verificando o status atual do post e alterando para o oposto
+    if (post.status === 'pendente') {
+        return update(postRef, { status: 'postado' })
       .then(() => {
         console.log('Status do post alterado com sucesso!'); // Mensagem exibida caso a operação de atualização do post seja bem-sucedida
       })
       .catch((error) => {
         console.error('Erro ao alterar o status do post: ', error); // Mensagem de erro exibida caso ocorra algum problema na atualização do post
       });
+    } 
+    else {
+        return update(postRef, { status: 'pendente' })
+      .then(() => {
+        console.log('Status do post alterado com sucesso!'); // Mensagem exibida caso a operação de atualização do post seja bem-sucedida
+      })
+      .catch((error) => {
+        console.error('Erro ao alterar o status do post: ', error); // Mensagem de erro exibida caso ocorra algum problema na atualização do post
+      });
+    }
   }
 
   // Função para remover um post do banco de dados

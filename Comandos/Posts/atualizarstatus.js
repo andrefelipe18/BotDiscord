@@ -28,9 +28,9 @@ module.exports = {
             .setStyle(Discord.ButtonStyle.Danger) // Estilo do botão
         );
 
-        interaction.reply({ embeds: [embed], components: [botao] }).then( () => {
+        interaction.reply({ embeds: [embed], components: [botao] }).then( () => { // Enviando a mensagem
 
-            let coletor = interaction.channel.createMessageComponentCollector();
+            let coletor = interaction.channel.createMessageComponentCollector(); 
 
             coletor.on("collect", async (c) => {
                 // Pegando o POST pelo ID e atualizando o status
