@@ -1,6 +1,6 @@
 // Importando as funções necessárias do Firebase
 const { initializeApp } = require('firebase/app');
-const { getDatabase, ref, push, onValue, child, get, set, update , remove} = require('firebase/database');
+const { getDatabase, ref, get, onValue, set, update , remove, child, exists} = require('firebase/database');
 
 
 // Importando as configurações do Firebase a partir do arquivo config.json
@@ -40,66 +40,64 @@ class Post {
       console.error('Erro ao adicionar o post: ', error);
     }
   }
+
   // Função para retornar um post específico com base no ID do banco de dados
   async getPostById(id) {
     const db = getDatabase(); // Obtendo a referência do banco de dados
-    const postRef = ref(db, `posts/${id}`); // Obtendo a referência para o post com base no ID
-  
-    try {
-      const snapshot = await get(postRef); // Obtendo os dados do post
-  
-      if (snapshot.val() === null) { // Verificando se o valor retornado é null
-        throw new Error(`Post ${id} não existe`);
-      }
-  
-      const post = snapshot.val(); // Obtendo os dados do post
-      const postObj = new Post(post.id, post.titulo, post.legenda, post.conteudo, post.status);
-      return postObj; // Retornando o objeto Post
-    } catch (error) {
-      throw new Error(`Erro ${id}: ${error}`);
-    }
-  }
+    const postRef = child(ref(db), `posts/${id}`); // Obtendo a referência para o post com o ID correspondente
 
-  // Função para retornar todos os posts do banco de dados
+    const snapshot = await get(postRef); // Obtendo os dados do post
+
+   if (snapshot.exists()) {
+    return snapshot.val();
+  } else {
+    return null;
+  }
+  }
+  //Função que vai me retornar um array com todos os posts do banco de dados em tempo real
   async getPosts() {
     const db = getDatabase(); // Obtendo a referência do banco de dados
-    const postsRef = ref(db, 'posts'); // Obtendo a referência para os dados da referência 'posts'
+    const postRef = ref(db, 'posts'); // Obtendo a referência para todos os posts
 
-    // Criando uma nova Promise para tratar o resultado da consulta
-    return new Promise((resolve, reject) => {
-      onValue(postsRef, (snapshot) => { // Escutando todas as mudanças nos dados da referência 'posts'
-        const posts = []; // Array que irá armazenar os posts recuperados do banco de dados
-        snapshot.forEach((childSnapshot) => { // Iterando sobre cada post encontrado
-          const post = childSnapshot.val(); // Obtendo os dados do post
-          posts.push(new Post(post.id, post.titulo, post.legenda, post.conteudo)); // Adicionando um novo objeto Post ao array posts
-        });
-        resolve(posts); // Resolvendo a Promise com o array de posts
-      }, (error) => {
-        reject(error); // Rejeitando a Promise caso ocorra algum erro na consulta
-      });
-    });
+    const snapshot = await get(postRef); // Obtendo os dados do post
+
+    let posts = [] // Array que vai conter todos os posts
+
+    snapshot.forEach(post => { // Percorrendo todos os posts
+      posts.push(post.val()) // Adicionando o post no array
+    })
+
+    return posts
   }
-
+  
   //Retornando apenas os posts pendentes
   async getPendingPosts() {
-    const db = getDatabase(); // Obtendo a referência do banco de dados
-    const postsRef = ref(db, 'posts'); // Obtendo a referência para os dados da referência 'posts'
+    let allPosts = await this.getPosts()
+    const pendingPosts = [];
 
-    // Criando uma nova Promise para tratar o resultado da consulta
-    return new Promise((resolve, reject) => {
-      const pendingPostsRef = orderByChild(postsRef, 'status').equalTo('pendente');
-      onValue(pendingPostsRef, (snapshot) => { // Escutando todas as mudanças nos dados da referência 'posts'
-        const posts = []; // Array que irá armazenar os posts recuperados do banco de dados
-        snapshot.forEach((childSnapshot) => { // Iterando sobre cada post encontrado
-          const post = childSnapshot.val(); // Obtendo os dados do post
-          posts.push(new Post(post.id, post.titulo, post.legenda, post.conteudo)); // Adicionando um novo objeto Post ao array posts
-        });
-        resolve(posts); // Resolvendo a Promise com o array de posts
-      }, (error) => {
-        reject(error); // Rejeitando a Promise caso ocorra algum erro na consulta
-      });
-    });
+    allPosts.forEach(post => {
+      if(post.status == 'pendente') {
+        pendingPosts.push(post)
+      }
+    })
+
+    return pendingPosts
   }
+
+  //Retornando apenas os posts postados
+  async getPostedPosts() {
+    let allPosts = await this.getPosts()
+    const postedPosts = [];
+
+    allPosts.forEach(post => {
+      if(post.status == 'postado') {
+        postedPosts.push(post)
+      }
+    })
+
+    return postedPosts
+  }
+
   //Update do post
   async updatePost(post) {
     const db = getDatabase(); // Obtendo a referência do banco de dados

@@ -49,6 +49,7 @@ async function criarPost(interaction){
         .setStyle(Discord.TextInputStyle.Paragraph) // Tipo de resposta (Short | Paragraph)
         .setRequired(false)
   
+        
         modal.addComponents(
           new Discord.ActionRowBuilder().addComponents(titulo),
           new Discord.ActionRowBuilder().addComponents(legenda),

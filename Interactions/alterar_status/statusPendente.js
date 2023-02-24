@@ -20,8 +20,17 @@ async function statusPendente(interaction){
         .setStyle(Discord.ButtonStyle.Primary) // Estilo do botão
     );
     
+    //Botao de exclusão
+    let botaoExcluir = new Discord.ActionRowBuilder().addComponents(
+        new Discord.ButtonBuilder()
+        .setCustomId("excluirBotao" + postId) // ID do botão que envia o id do post para o ouvinte
+        .setEmoji("🗑") // Emoji do botão
+        .setLabel("Excluir Post") // Label do botão
+        .setStyle(Discord.ButtonStyle.Danger) // Estilo do botão
+    );     
+
     //Atualiza o botão com o novo status
-    await interaction.update({components: [botao] });
+    await interaction.update({components: [botao, botaoExcluir] });
     
     //Atualiza o status do post no firebase
     post.mudarStatus(post);

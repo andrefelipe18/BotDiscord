@@ -1,7 +1,7 @@
 const Discord = require("discord.js"); // Importa a biblioteca discord.js
 const config = require("./config.json"); // Importa as configurações do bot do arquivo config.json
 
-//Importando o model de post
+//Model de Post
 const Post = require("./Model/Post.js");
 
 //Importando as interações do bot
@@ -87,6 +87,33 @@ client.on('interactionCreate', async (interaction) => {
 // Cria um ouvinte para o evento de inicialização do bot
 client.on('ready', () => { 
   console.log(`🔥 Estou online em ${client.user.username}!`); // Exibe uma mensagem no console informando que o bot está online
+
+  // Toda vez que o bot for inicializado, ele irá mandar uma mensagem no canal "bot"
+  let idCanal = "1077309897542205500"; // ID do canal
+
+  // Obtém o canal pelo ID
+  let canal = client.channels.cache.get(idCanal);
+
+  //Verifica se já existe uma mensagem no canal
+  canal.messages.fetch({ limit: 1 }).then((messages) => {
+    messages.forEach((message) => {
+      message.delete();
+    });
+  });
+  // Envia uma mensagem no canal
+  canal.send("🔥 Estou online!");
+
+
+  //Atualiza a mensagem a cada 5 minutos com a quantidade de posts e o ping do bot
+  setInterval(() => {
+    //Tempo em minutos
+    const uptimeEmMinutos = Math.floor(client.uptime / 60000);
+    canal.messages.fetch({ limit: 1 }).then((messages) => {
+      messages.forEach((message) => {
+        message.edit(`🔥 Estou online! \n\n📊 Quantidade de posts: (ainda não feito) \n\n📊 Ping: ${client.ws.ping}ms \n\n📊 Estou funcionando a: ${uptimeEmMinutos}m`);
+      });
+    });
+  }, 30000);
 });
 
 // Cria uma nova coleção para armazenar os comandos do bot
