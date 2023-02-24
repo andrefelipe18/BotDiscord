@@ -1,31 +1,44 @@
 const Discord = require("discord.js"); // Importa a biblioteca discord.js
-const { QuickDB } = require("quick.db")
-const db = new QuickDB()
 const config = require("./config.json"); // Importa as configurações do bot do arquivo config.json
 
 //Importando o model de post
 const Post = require("./Model/Post.js");
 
+//Importando as interações do bot
+const statusPostado = require("./Interactions/alterar_status/statusPostado.js");
+const statusPendente = require("./Interactions/alterar_status/statusPendente.js");
+const excluirPost = require("./Interactions/PostCRUD/excluirPost.js");
+const abrirFormPost = require("./Interactions/PostCRUD/abrirFormPost.js");
+const enviarFormPost = require("./Interactions/PostCRUD/enviarFormPost.js");
 
-const client = new Discord.Client({  // Cria uma nova instância do cliente discord
+// Cria uma nova instância do cliente discord
+const client = new Discord.Client({
   intents: [ 
     Discord.GatewayIntentBits.Guilds  // Define as intenções que o bot tem ao se conectar ao servidor do Discord
   ]
 });
 
-module.exports = client; // Exporta o cliente para ser utilizado em outros arquivos do projeto
+// Exporta o cliente para ser utilizado em outros arquivos do projeto
+module.exports = client; 
 
-client.on('interactionCreate', (interaction) => { // Cria um ouvinte para a interação do usuário com o bot
 
-  if(interaction.type === Discord.InteractionType.ApplicationCommand){ // Verifica se a interação é do tipo ApplicationCommand
+// Cria um ouvinte para a interação do usuário com o bot
+client.on('interactionCreate', (interaction) => { 
 
-      const cmd = client.slashCommands.get(interaction.commandName); // Obtém o comando correspondente ao nome da interação
+  // Verifica se a interação é do tipo ApplicationCommand
+  if(interaction.type === Discord.InteractionType.ApplicationCommand){ 
 
-      if (!cmd) return interaction.reply(`Error`); // Verifica se o comando foi encontrado
+      // Obtém o comando correspondente ao nome da interação
+      const cmd = client.slashCommands.get(interaction.commandName); 
 
-      interaction["member"] = interaction.guild.members.cache.get(interaction.user.id); // Obtém informações do membro que interagiu com o bot
+      // Verifica se o comando foi encontrado
+      if (!cmd) return interaction.reply(`Error`); 
 
-      cmd.run(client, interaction); // Executa o comando correspondente
+      // Obtém informações do membro que interagiu com o bot
+      interaction["member"] = interaction.guild.members.cache.get(interaction.user.id); 
+
+      // Executa o comando correspondente
+      cmd.run(client, interaction); 
 
    }
 });
@@ -33,146 +46,54 @@ client.on('interactionCreate', (interaction) => { // Cria um ouvinte para a inte
 //Modal de criação de Post
 client.on("interactionCreate", async(interaction) => {
   if (interaction.isButton()) {
-    if (interaction.customId === "formulario") {
-      if (!interaction.guild.channels.cache.get(await db.get(`posts_${interaction.guild.id}`))) return interaction.reply({ content: `O sistema está desativado.`, ephemeral: true })
-      const modal = new Discord.ModalBuilder()
-      .setCustomId("modal")
-      .setTitle("Formulário");
 
-      const titulo = new Discord.TextInputBuilder()
-      .setCustomId("titulo") // Coloque o ID da pergunta
-      .setLabel("Titulo") // Coloque a pergunta
-      .setPlaceholder("Escreva o titulo do post: ") // Mensagem que fica antes de escrever a resposta
-      .setRequired(true) // Deixar para responder obrigatório (true | false)
-      .setStyle(Discord.TextInputStyle.Short) // Tipo de resposta (Short | Paragraph)
+    //Função para abrir o modal de criação de post
+    abrirFormPost(interaction);
 
-      const legenda = new Discord.TextInputBuilder()
-      .setCustomId("legenda") // Coloque o ID da pergunta
-      .setLabel("Legenda") // Coloque a pergunta
-      .setPlaceholder("Escrava a legenda do post: ") // Mensagem que fica antes de escrever a resposta
-      .setStyle(Discord.TextInputStyle.Short) // Tipo de resposta (Short | Paragraph)
-      .setRequired(true)
-
-      const slide1 = new Discord.TextInputBuilder()
-      .setCustomId("slide1") // Coloque o ID da pergunta
-      .setLabel("Conteudo 1º Slide: ") // Coloque a pergunta
-      .setPlaceholder("Escreva o que deve conter no primeiro slide: ") // Mensagem que fica antes de escrever a resposta
-      .setStyle(Discord.TextInputStyle.Paragraph) // Tipo de resposta (Short | Paragraph)
-      .setRequired(false)
-
-      const slide2 = new Discord.TextInputBuilder()
-      .setCustomId("slide2") // Coloque o ID da pergunta
-      .setLabel("Conteudo 2º Slide: ") // Coloque a pergunta
-      .setPlaceholder("Escreva o que deve conter no segundo slide:") // Mensagem que fica antes de escrever a resposta
-      .setStyle(Discord.TextInputStyle.Paragraph) // Tipo de resposta (Short | Paragraph)
-      .setRequired(false)
-
-      const slide3 = new Discord.TextInputBuilder()
-      .setCustomId("slide3") // Coloque o ID da pergunta
-      .setLabel("Conteudo 3º Slide: ") // Coloque a pergunta
-      .setPlaceholder("Escreva o que deve conter no terceiro slide:") // Mensagem que fica antes de escrever a resposta
-      .setStyle(Discord.TextInputStyle.Paragraph) // Tipo de resposta (Short | Paragraph)
-      .setRequired(false)
-
-      modal.addComponents(
-        new Discord.ActionRowBuilder().addComponents(titulo),
-        new Discord.ActionRowBuilder().addComponents(legenda),
-        new Discord.ActionRowBuilder().addComponents(slide1),
-        new Discord.ActionRowBuilder().addComponents(slide2),
-        new Discord.ActionRowBuilder().addComponents(slide3)
-      )
-
-      await interaction.showModal(modal)
-    }
   } else if (interaction.isModalSubmit()) {
-    if (interaction.customId === "modal") {
-      let resposta1 = interaction.fields.getTextInputValue("titulo")
-      let resposta2 = interaction.fields.getTextInputValue("legenda")
-      let resposta3 = interaction.fields.getTextInputValue("slide1")
-      let resposta4 = interaction.fields.getTextInputValue("slide2")
-      let resposta5 = interaction.fields.getTextInputValue("slide3")
-
-      if (!resposta1) resposta1 = "Não informado."
-      if (!resposta2) resposta2 = "Não informado."
-      if (!resposta3) resposta3 = "Não informado."
-      if (!resposta4) resposta4 = "Não informado."
-      if (!resposta5) resposta5 = "Não informado."
-
-      const postId = Date.now().toString();
-      let embed = new Discord.EmbedBuilder()
-      .setColor("DarkRed")
-      .setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL({ dynamic: true }) })
-      .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
-      .setDescription(`Post de ID: \`${postId}\``)
-      .addFields(
-        {
-          name: `Titulo:`,
-          value: `\`${resposta1}\``,
-          inline: false
-        },
-        {
-          name: `Legenda: `,
-          value: `${resposta2}`,
-          inline: false
-        },
-        {
-          name: `Conteudo 1º Slide:`,
-          value: `${resposta3}`,
-          inline: false
-        },
-        {
-          name: `Conteudo 2º Slide:`,
-          value: `${resposta4}`,
-          inline: false
-        },
-        {
-          name: `Conteudo 3º Slide:`,
-          value: `${resposta5}`,
-          inline: false
-        },
-      );
-      //Criando o botão de alternar o status do post
-      let botao = new Discord.ActionRowBuilder().addComponents(
-        new Discord.ButtonBuilder()
-        .setCustomId("status_b" + postId) // ID do botão que envia o id do post para o ouvinte
-        .setEmoji("➡") // Emoji do botão
-        .setLabel("Clique Aqui Para Alternar o Status para: Postado") // Label do botão
-        .setStyle(Discord.ButtonStyle.Danger) // Estilo do botão
-    );
-      //Criando o post no firebase
-      let conteudo = resposta3 + '    ' + resposta4 + '    ' +  resposta5;
-      let postagem = new Post(postId, resposta1, resposta2, conteudo);
-      postagem.createPost(postagem);
-
-      await interaction.guild.channels.cache.get(await db.get(`posts_${interaction.guild.id}`)).send({ embeds: [embed], components: [botao] })
-    }
+    
+    //Função para enviar o form de criação de post
+    enviarFormPost(interaction);
   }
 })
-client.on('interactionCreate', async (interaction) => {  //Ouvinte para o clique no botão de alternar o status do post
-  if (interaction.isButton()) { //Verifica se o clique foi em um botão
-    if (interaction.customId.startsWith("status_b")) { //Verifica se o ID do botão é o botão de alternar status
-      //Pegando o ID do post enviado no ID do botão
-      let postId = interaction.customId.replace("status_b", "");
-      //Pegando o post no firebase
-      let Ppost = new Post();
-      // Obtendo o objeto Post com base no ID
-      let post = await Ppost.getPostById(postId);
 
-      //Atualizando o post no firebase
-      post.mudarStatus(post);
+//Interação de clicar no botão de alternar status para "postado"
+client.on('interactionCreate', async (interaction) => { 
+  if (interaction.isButton()) { 
 
-
-    }
+    //Chama a função de alternar o status do post
+    statusPostado(interaction);
   }
 });
 
+//Interação de clicar no botão de alternar status para "pendente"
+client.on('interactionCreate', async (interaction) => { 
+  if (interaction.isButton()) { 
+   
+    //Chama a função de alternar o status do post
+    statusPendente(interaction);
+  }
+});
 
-client.on('ready', () => { // Cria um ouvinte para o evento de inicialização do bot
+//Interação de excluir post
+client.on('interactionCreate', async (interaction) => {  
+  if (interaction.isButton()) { 
+
+    //Chama a função de excluir Post
+    excluirPost(interaction, client);
+  }
+});
+
+// Cria um ouvinte para o evento de inicialização do bot
+client.on('ready', () => { 
   console.log(`🔥 Estou online em ${client.user.username}!`); // Exibe uma mensagem no console informando que o bot está online
 });
 
-client.slashCommands = new Discord.Collection(); // Cria uma nova coleção para armazenar os comandos do bot
+// Cria uma nova coleção para armazenar os comandos do bot
+client.slashCommands = new Discord.Collection(); 
 
-require('./handler')(client); // Importa e executa o arquivo handler.js, responsável por registrar os comandos do bot
+// Importa e executa o arquivo handler.js, responsável por registrar os comandos do bot
+require('./handler')(client); 
 
-client.login(config.TOKEN); // Inicia a conexão do bot com o servidor do Discord usando o token de acesso armazenado no arquivo config.json
+// Inicia a conexão do bot com o servidor do Discord usando o token de acesso armazenado no arquivo config.json
+client.login(config.TOKEN); 

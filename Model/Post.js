@@ -1,6 +1,6 @@
 // Importando as funções necessárias do Firebase
 const { initializeApp } = require('firebase/app');
-const { getDatabase, ref, push, onValue, child, get, set, update } = require('firebase/database');
+const { getDatabase, ref, push, onValue, child, get, set, update , remove} = require('firebase/database');
 
 
 // Importando as configurações do Firebase a partir do arquivo config.json
@@ -124,7 +124,7 @@ class Post {
     if (post.status === 'pendente') {
         return update(postRef, { status: 'postado' })
       .then(() => {
-        console.log('Status do post alterado com sucesso!'); // Mensagem exibida caso a operação de atualização do post seja bem-sucedida
+        console.log(`Status do post ${post.id} Alterado com sucesso`); // Mensagem exibida caso a operação de atualização do post seja bem-sucedida
       })
       .catch((error) => {
         console.error('Erro ao alterar o status do post: ', error); // Mensagem de erro exibida caso ocorra algum problema na atualização do post
@@ -133,7 +133,7 @@ class Post {
     else {
         return update(postRef, { status: 'pendente' })
       .then(() => {
-        console.log('Status do post alterado com sucesso!'); // Mensagem exibida caso a operação de atualização do post seja bem-sucedida
+        console.log(`Status do post ${post.id} Alterado com sucesso`); // Mensagem exibida caso a operação de atualização do post seja bem-sucedida
       })
       .catch((error) => {
         console.error('Erro ao alterar o status do post: ', error); // Mensagem de erro exibida caso ocorra algum problema na atualização do post
@@ -141,19 +141,20 @@ class Post {
     }
   }
 
-  // Função para remover um post do banco de dados
-  deletePost(post) {
+  //Função para remover um post específico com base no ID
+  async deletePost(id) {
     const db = getDatabase(); // Obtendo a referência do banco de dados
-    const postRef = remove(ref(db, 'posts'), post); // Removendo o post da referência 'posts' do banco de dados
-
-    postRef
+    const postRef = ref(db, `posts/${id}`); // Obtendo a referência do post específico a partir do ID
+  
+    // Removendo o post
+    return remove(postRef)
       .then(() => {
-        console.log('Post deletado com sucesso!'); // Mensagem exibida caso a operação de exclusão do post
-        })
-       .catch((error) => {
-         console.error('Erro ao deletar o post: ', error);
-        });
-    }
+        console.log(`Post ${id} removido com sucesso!`); // Mensagem exibida caso a operação de remoção do post seja bem-sucedida
+      })
+      .catch((error) => {
+        console.error('Erro ao remover o post: ', error); // Mensagem de erro exibida caso ocorra algum problema na remoção do post
+      });
+  }
 }
 
 module.exports = Post;
