@@ -24,6 +24,16 @@ module.exports = {
           value: `Titulo: \`${post.titulo}\``
         });
       });
+
+      //Obtem o canal de posts pendentes
+      let canalID = "1078770187916038154"
+      let canal = client.channels.cache.get(canalID)
+
+      canal.messages.fetch({ limit: 1 }).then((messages) => {
+        messages.forEach((message) => {
+          message.delete();
+        });
+      });
       
       interaction.reply({ embeds: [embed] });
     }

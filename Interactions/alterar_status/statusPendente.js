@@ -33,7 +33,7 @@ async function statusPendente(interaction){
     await interaction.update({components: [botao, botaoExcluir] });
     
     //Atualiza o status do post no firebase
-    post.mudarStatus(post);
+    Ppost.mudarStatus(post);
  }
 }
 

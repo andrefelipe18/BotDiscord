@@ -4,6 +4,22 @@ const config = require("./config.json"); // Importa as configurações do bot do
 //Model de Post
 const Post = require("./Model/Post.js");
 
+//importando o firebase realtime database
+const { initializeApp } = require('firebase/app');
+const { getDatabase, ref, onValue } = require('firebase/database');
+
+// Configurando o Firebase com as configurações obtidas do arquivo config.json
+const firebaseConfig = {
+  apiKey: config.apiKey,
+  authDomain: config.authDomain,
+  databaseURL: config.databaseURL,
+  projectId: config.projectId,
+  storageBucket: config.storageBucket,
+  messagingSenderId: config.messagingSenderId,
+  appId: config.appId
+};
+const app = initializeApp(firebaseConfig); // Iniciando o Firebase com as configurações obtidas
+
 //Importando as interações do bot
 const statusPostado = require("./Interactions/alterar_status/statusPostado.js");
 const statusPendente = require("./Interactions/alterar_status/statusPendente.js");
@@ -115,6 +131,84 @@ client.on('ready', () => {
     });
   }, 30000);
 });
+
+//Ouvindo o evento de mudança no banco de dados
+const db = getDatabase();
+const postRef = ref(db, 'posts');
+
+onValue(postRef, (snapshot) => {
+  //Pegando o valor que foi alterado no banco de dados
+  const data = snapshot.val();
+
+  //Pegando o ID do post que foi alterado
+  const id = Object.keys(data)[0];
+
+  const idCanalPostados = "1078770187916038154";
+  const canalPostados = client.channels.cache.get(idCanalPostados);
+  const idCanalPendentes = "1062738737315975308";
+  const canalPendentes = client.channels.cache.get(idCanalPendentes);
+
+  //Pegando todos os posts do banco de dados
+  const posts = Object.values(data);
+
+  //Pegando os posts que estão pendentes e postados
+  const postsPendentes = posts.filter((post) => post.status === "pendente");
+  const postsPostados = posts.filter((post) => post.status === "postado");
+
+  //Preparando a mensagem de posts pendentes e postados
+  let embedPostado = new Discord.EmbedBuilder()
+   // .setAuthor({ name: client.user.username, iconURL: client.user.displayAvatarURL({ dynamic: true }) }) // Define o autor do embed
+    .setDescription(`Aqui estão todos os posts já postados.`) // Define a mensagem do embed
+    .setColor("Green"); // Define a cor do embed
+
+  let embedPendente = new Discord.EmbedBuilder()
+  //.setAuthor({ name: client.user.username, iconURL: client.user.displayAvatarURL({ dynamic: true }) }) // Define o autor do embed
+  .setDescription(`Aqui estão todos os posts ainda não publicados.`) // Define a mensagem do embed
+  .setColor("Blue"); // Define a cor do embed
+
+  //Percorrendo os posts pendentes e adicionando no embed
+  postsPendentes.forEach((post) => {
+    embedPendente.addFields({
+      name: `Post de ID: \`${post.id}\``,
+      value: `Titulo: \`${post.titulo}\``
+    });
+  });
+
+  //Percorrendo os posts postados e adicionando no embed
+  postsPostados.forEach((post) => {
+    embedPostado.addFields({
+      name: `Post de ID: \`${post.id}\``,
+      value: `Titulo: \`${post.titulo}\``
+    });
+  });
+
+  //Verificando se já existe uma mensagem no canal de posts pendentes
+  canalPendentes.messages.fetch({ limit: 1 }).then((messages) => {
+    messages.forEach((message) => {
+      message.delete();
+    });
+  });
+
+  //Verificando se já existe uma mensagem no canal de posts postados
+  canalPostados.messages.fetch({ limit: 1 }).then((messages) => {
+    messages.forEach((message) => {
+      message.delete();
+    });
+  });
+
+  if(canalPendentes && canalPostados){
+    //Enviando a mensagem no canal de posts pendentes
+    canalPendentes.send({
+      embeds: [embedPendente]
+    });
+
+    //Enviando a mensagem no canal de posts postados
+    canalPostados.send({
+      embeds: [embedPostado]
+    });
+  }
+});
+
 
 // Cria uma nova coleção para armazenar os comandos do bot
 client.slashCommands = new Discord.Collection(); 

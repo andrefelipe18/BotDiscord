@@ -12,7 +12,7 @@ async function excluirPost(interaction, client){
         // Obtendo o objeto Post com base no ID
         let post = await Ppost.getPostById(postId);
   
-        post.deletePost(postId);
+        Ppost.deletePost(postId);
   
         let embed = new Discord.EmbedBuilder()
         .setAuthor({ name: client.user.username, iconURL: client.user.displayAvatarURL({ dynamic: true }) }) // Define o autor do embed

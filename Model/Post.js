@@ -18,6 +18,7 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig); // Iniciando o Firebase com as configurações obtidas
 
+
 // Definindo a classe Post, que representa um post no banco de dados
 class Post {
   constructor(id, titulo, legenda, conteudo, status = 'pendente') {
